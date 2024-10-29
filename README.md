@@ -1,4 +1,4 @@
-# Therapet
+# Therapet (In Progress)
 
 This repository holds the code for the project Therapet, an application for a pet that helps.
 Generative AI for music.

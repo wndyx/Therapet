@@ -1,4 +1,5 @@
 // app.js
+
 const express = require('express');
 const mongoose = require('./db'); // Connects to MongoDB
 const Character = require('./models/Character');
@@ -7,15 +8,10 @@ const User = require('./models/User');
 const app = express();
 app.use(express.json());
 
-// Endpoint to start a new chat session
-app.post('/api/start-session', async (req, res) => {
-    const { username, character_id } = req.body;
-    const user = new User({ username, character: character_id, chat_history: [] });
-    await user.save();
-    res.json(user);
-});
+// Serve static files
+app.use(express.static('public'));
 
-// Endpoint for user messages
+// API endpoints (example for sending messages)
 app.post('/api/message', async (req, res) => {
     const { userId, message } = req.body;
     const user = await User.findById(userId);

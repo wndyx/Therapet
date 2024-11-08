@@ -1,8 +1,8 @@
-// models/User.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    username: String,
+    _id: String,
+    password: String,
     character: String,
     chat_history: [
         {

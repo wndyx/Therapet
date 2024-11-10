@@ -1,12 +1,20 @@
 const express = require('express');
-const mongoose = require('./db');
-const Character = require('./models/Character');
-const User = require('./models/User');
+const mongoose = require('./db'); // Import database connection
 const bcrypt = require('bcryptjs');
+const session = require('express-session');
+const User = require('./models/User'); // Import User model
 
 const app = express();
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('public')); // Serve static files from "public" folder
+
+// Configure sessions
+app.use(session({
+    secret: 'yourSecretKey', // Replace with a secure secret in production
+    resave: false,
+    saveUninitialized: false, // Only create a session if needed
+    cookie: { secure: false } // Use true only in production with HTTPS
+}));
 
 // Predefined Responses for Different Emotions
 const consolingResponses = {
@@ -46,48 +54,75 @@ function getConsolingResponse(message) {
     }
 }
 
-// Sign Up Route
+// Sign Up Route with Email
 app.post('/api/signup', async (req, res) => {
-    const { username, password } = req.body;
-    const userExists = await User.findById(username);
-    if (userExists) return res.json({ message: "User already exists" });
+    const { email, username, password } = req.body;
 
+    // Check if user already exists by email or username
+    const userExists = await User.findOne({ $or: [{ username }, { email }] });
+    if (userExists) return res.json({ message: "Username or email already exists" });
+
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ _id: username, password: hashedPassword, chat_history: [] });
+
+    // Create a new user document with username as a separate field
+    const user = new User({ username, email, password: hashedPassword, chat_history: [] });
     await user.save();
+
     res.json({ message: "Sign-up successful! Please log in." });
 });
+
 
 // Login Route
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = await User.findById(username);
-    if (!user) return res.json({ message: "User not found" });
 
-    const match = await bcrypt.compare(password, user.password);
-    if (match) {
-        res.json({ success: true, userId: user._id });
-    } else {
-        res.json({ success: false, message: "Incorrect password" });
+    try {
+        // Find the user by username
+        const user = await User.findOne({ username });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Compare the provided password with the stored hashed password
+        const match = await bcrypt.compare(password, user.password);
+        if (match) {
+            req.session.userId = user._id; // Set session userId on successful login
+            res.status(200).json({ success: true, message: "Login successful", userId: user._id });
+        } else {
+            res.status(401).json({ success: false, message: "Incorrect password" });
+        }
+    } catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).json({ message: "Error during login" });
     }
 });
 
-// Chat Message Route
+
+// Protected Chat Message Route
 app.post('/api/message', async (req, res) => {
-    const { userId, message } = req.body;
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!req.session.userId) {
+        return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
 
-    // Use getConsolingResponse to analyze the user's message and respond
-    const response = getConsolingResponse(message);
+    const { message } = req.body;
+    try {
+        const user = await User.findById(req.session.userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Update chat history
-    user.chat_history.push({ message, is_user: true });
-    user.chat_history.push({ message: response, is_user: false });
-    await user.save();
+        // Use getConsolingResponse to analyze the user's message and respond
+        const response = getConsolingResponse(message);
 
-    res.json({ userMessage: message, botResponse: response });
+        // Update chat history
+        user.chat_history.push({ message, is_user: true });
+        user.chat_history.push({ message: response, is_user: false });
+        await user.save();
+
+        res.status(200).json({ userMessage: message, botResponse: response });
+    } catch (error) {
+        console.error('Error handling message:', error);
+        res.status(500).json({ message: "Error processing message" });
+    }
 });
 
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

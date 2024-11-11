@@ -1,42 +1,69 @@
+// Imports
 const express = require('express');
-const mongoose = require('./db');
-const Character = require('./models/Character');
-const User = require('./models/User');
+const mongoose = require('./db'); // Import database connection
 const bcrypt = require('bcryptjs');
-const { exec } = require('child_process');
+const session = require('express-session');
+const User = require('./models/User'); // Import User model
 
 const app = express();
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('public')); // Serve static files from "public" folder
 
-// Sign Up Route
+// Configure sessions
+app.use(session({
+    secret: 'yourSecretKey', // Replace with a secure secret in production
+    resave: false,
+    saveUninitialized: false, // Only create a session if needed
+    cookie: { secure: false } // Use true only in production with HTTPS
+}));
+
+
+
+// Sign Up Route with Email
 app.post('/api/signup', async (req, res) => {
-    const { username, password, conditions } = req.body;  // Accept conditions during signup
-    const userExists = await User.findById(username);
-    if (userExists) return res.json({ message: "User already exists" });
+    const { email, username, password } = req.body;
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({
-        _id: username,
-        password: hashedPassword,
-        chat_history: [],
-        conditions: conditions || []  // Default to empty if none provided
-    });
-    await user.save();
-    res.json({ message: "Sign-up successful! Please log in." });
+    try {
+        // Check if user already exists by email or username
+        const userExists = await User.findOne({ $or: [{ username }, { email }] });
+        if (userExists) {
+            return res.json({ success: false, message: "Username or email already exists" });
+        }
+
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create a new user document with username as a separate field
+        const user = new User({ username, email, password: hashedPassword, chat_history: [] });
+        await user.save();
+
+        res.json({ success: true, message: "Sign-up successful! Please log in." });
+    } catch (error) {
+        console.error('Error during signup:', error);
+        res.status(500).json({ success: false, message: "Error during signup" });
+    }
 });
 
 // Login Route
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = await User.findById(username);
-    if (!user) return res.json({ message: "User not found" });
 
-    const match = await bcrypt.compare(password, user.password);
-    if (match) {
-        res.json({ success: true, userId: user._id });
-    } else {
-        res.json({ success: false, message: "Incorrect password" });
+    try {
+        // Find the user by username
+        const user = await User.findOne({ username });
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+        // Compare the provided password with the stored hashed password
+        const match = await bcrypt.compare(password, user.password);
+        if (match) {
+            req.session.userId = user._id; // Set session userId on successful login
+            res.status(200).json({ success: true, message: "Login successful", userId: user._id });
+        } else {
+            res.status(401).json({ success: false, message: "Incorrect password" });
+        }
+    } catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).json({ success: false, message: "Error during login" });
     }
 });
 
@@ -100,8 +127,6 @@ app.post('/api/message', async (req, res) => {
     }
 });
 
-// New Routes for Avatar Customization
-
 // Save Avatar Route
 app.post('/api/user/avatar/save', async (req, res) => {
     const { userId, avatarConfig } = req.body;
@@ -137,7 +162,6 @@ app.get('/api/user/:userId/avatar', async (req, res) => {
     }
 });
 
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-module.exports = app;

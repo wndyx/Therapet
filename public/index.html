@@ -1,19 +1,26 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
-  <link rel="stylesheet" href="/styles/login.css"> <!-- Original styles preserved -->
-  <script src="login.js" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
 </head>
 <body>
-  <div id="login-container" class="green-chatbox"> <!-- Original green chatbox styling -->
     <h2>Login</h2>
-    <input type="text" id="username" placeholder="Username" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button onclick="login()">Login</button>
-  </div>
+    <div id="message"></div>
+    <form onsubmit="event.preventDefault(); login();">
+        <label for="username">Username:</label>
+        <input type="text" id="username" required><br><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" required><br><br>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <!-- Link to signup page -->
+    <p>Don't have an account? <a href="signup.html">Sign up</a></p>
+
+    <script src="login.js"></script>
 </body>
 </html>

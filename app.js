@@ -3,57 +3,25 @@ const mongoose = require('./db');
 const Character = require('./models/Character');
 const User = require('./models/User');
 const bcrypt = require('bcryptjs');
+const { exec } = require('child_process');
 
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// Predefined Responses for Different Emotions
-const consolingResponses = {
-    sad: [
-        "I'm sorry you're feeling this way. I'm here to listen.",
-        "It's okay to feel sad sometimes. Take all the time you need.",
-        "Remember, you're not alone. I'm here to talk whenever you need."
-    ],
-    stressed: [
-        "It sounds like you're feeling overwhelmed. Try taking a few deep breaths.",
-        "Stress can be tough. Remember to take things one step at a time.",
-        "Sometimes, it helps to take a break and do something relaxing."
-    ],
-    anxious: [
-        "Anxiety can be overwhelming, but I'm here to help you through it.",
-        "Try focusing on your breathing for a moment. I'm here with you.",
-        "Remember, these feelings will pass. I'm here to support you."
-    ],
-    neutral: [
-        "I'm here for you! Tell me what's on your mind.",
-        "How are you feeling today?",
-        "Let's talk about whatever is on your mind."
-    ]
-};
-
-// Function to analyze the user's message and respond accordingly
-function getConsolingResponse(message) {
-    const loweredMessage = message.toLowerCase();
-    if (loweredMessage.includes("sad") || loweredMessage.includes("upset") || loweredMessage.includes("depressed")) {
-        return consolingResponses.sad[Math.floor(Math.random() * consolingResponses.sad.length)];
-    } else if (loweredMessage.includes("stress") || loweredMessage.includes("overwhelmed")) {
-        return consolingResponses.stressed[Math.floor(Math.random() * consolingResponses.stressed.length)];
-    } else if (loweredMessage.includes("anxious") || loweredMessage.includes("nervous")) {
-        return consolingResponses.anxious[Math.floor(Math.random() * consolingResponses.anxious.length)];
-    } else {
-        return consolingResponses.neutral[Math.floor(Math.random() * consolingResponses.neutral.length)];
-    }
-}
-
 // Sign Up Route
 app.post('/api/signup', async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, conditions } = req.body;  // Accept conditions during signup
     const userExists = await User.findById(username);
     if (userExists) return res.json({ message: "User already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ _id: username, password: hashedPassword, chat_history: [] });
+    const user = new User({
+        _id: username,
+        password: hashedPassword,
+        chat_history: [],
+        conditions: conditions || []  // Default to empty if none provided
+    });
     await user.save();
     res.json({ message: "Sign-up successful! Please log in." });
 });
@@ -72,22 +40,104 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Chat Message Route
+// Helper function to create a dynamic prompt based on conditions
+function getDynamicPrompt(userMessage, userConditions) {
+    if (userConditions.length === 0) {
+        return `Respond with empathy: "${userMessage}"`;
+    }
+
+    // Customize prompt based on conditions
+    let conditionDescriptions = userConditions.map(condition => {
+        return `Respond as a supportive counselor to someone dealing with ${condition}`;
+    }).join(", ");
+
+    return `${conditionDescriptions}. Their message: "${userMessage}"`;
+}
+
+// Helper function to call the Python script for generating responses
+function getChatResponse(prompt) {
+    return new Promise((resolve, reject) => {
+        exec(`python3 generate_response.py "${prompt}"`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing Python script: ${stderr}`);
+                reject("I'm having trouble understanding. Could you rephrase that?");
+            } else {
+                try {
+                    const { response } = JSON.parse(stdout);
+                    resolve(response);
+                } catch (parseError) {
+                    console.error(`Error parsing response: ${parseError}`);
+                    reject("I'm having trouble understanding. Could you rephrase that?");
+                }
+            }
+        });
+    });
+}
+
+// Chat Message Route with Dynamic Prompt
 app.post('/api/message', async (req, res) => {
     const { userId, message } = req.body;
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Use getConsolingResponse to analyze the user's message and respond
-    const response = getConsolingResponse(message);
+    const userConditions = user.conditions;
 
-    // Update chat history
-    user.chat_history.push({ message, is_user: true });
-    user.chat_history.push({ message: response, is_user: false });
-    await user.save();
+    // Generate a dynamic prompt based on the user's conditions
+    const prompt = getDynamicPrompt(message, userConditions);
+    
+    // Generate response using the model with the custom prompt
+    try {
+        const botResponse = await getChatResponse(prompt);
 
-    res.json({ userMessage: message, botResponse: response });
+        // Update chat history
+        user.chat_history.push({ message, is_user: true });
+        user.chat_history.push({ message: botResponse, is_user: false });
+        await user.save();
+
+        res.json({ userMessage: message, botResponse });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to process message' });
+    }
+});
+
+// New Routes for Avatar Customization
+
+// Save Avatar Route
+app.post('/api/user/avatar/save', async (req, res) => {
+    const { userId, avatarConfig } = req.body;
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        user.avatarConfig = avatarConfig;
+        await user.save();
+
+        res.status(200).json({ message: "Avatar saved successfully", avatarConfig });
+    } catch (error) {
+        res.status(500).json({ message: "Error saving avatar", error });
+    }
+});
+
+// Get Avatar Route
+app.get('/api/user/:userId/avatar', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ avatarConfig: user.avatarConfig });
+    } catch (error) {
+        res.status(500).json({ message: "Error retrieving avatar", error });
+    }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+module.exports = app;

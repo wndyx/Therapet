@@ -1,0 +1,106 @@
+/* public/styles/chat.css */
+
+/* Chat container */
+#chat-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #f7f8fc;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Header styling */
+  #header {
+    display: flex;
+    align-items: center;
+    background-color: #4CAF50; /* Soft green for a calming effect */
+    padding: 10px;
+    color: white;
+  }
+  
+  .avatar-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 15px;
+  }
+  
+  #header h2 {
+    flex: 1;
+    font-size: 1.5rem;
+  }
+  
+  #settings-button {
+    background: #ffffff;
+    border: none;
+    color: #4CAF50;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  #settings-button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  /* Chat window and messages */
+  #chat-window {
+    height: 400px;
+    padding: 15px;
+    overflow-y: auto;
+    background: #ffffff;
+  }
+  
+  .message {
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin: 8px 0;
+    max-width: 70%;
+  }
+  
+  .user-message {
+    background-color: #dcf8c6;
+    align-self: flex-end;
+    text-align: right;
+  }
+  
+  .bot-message {
+    background-color: #f1f0f0;
+    align-self: flex-start;
+    text-align: left;
+  }
+  
+  /* Input container styling */
+  #input-container {
+    display: flex;
+    padding: 10px;
+    background-color: #f0f2f5;
+    border-top: 1px solid #e0e0e0;
+  }
+  
+  #user-input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #e0e0e0;
+    outline: none;
+  }
+  
+  #send-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin-left: 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  #send-button:hover {
+    background-color: #45a049;
+  }
+  

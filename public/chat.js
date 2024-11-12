@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Event listener for the send button
     document.getElementById("send-button").addEventListener("click", sendMessage);
 
-    // Optionally, you can also add an event listener for pressing "Enter" key
+    // Event listener for pressing "Enter" key
     document.getElementById("user-input").addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -11,22 +11,29 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+// Include 'credentials: "include"' in your fetch options
 async function sendMessage() {
-    const userId = localStorage.getItem("userId"); // Retrieve stored userId
     const message = document.getElementById("user-input").value.trim();
     if (!message) return;
 
-    appendMessage(message, "user"); // Display user message
+    appendMessage(message, "user");
     document.getElementById("user-input").value = "";
 
-    const response = await fetch("/api/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, message })
-    });
-    const data = await response.json();
-    appendMessage(data.botResponse || "Error: " + data.error, "bot");
+    try {
+        const response = await fetch("/api/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message }),
+            credentials: "include" // Add this line
+        });
+        const data = await response.json();
+        appendMessage(data.botResponse || "Error: " + data.error, "bot");
+    } catch (error) {
+        console.error("Error sending message:", error);
+        appendMessage("An error occurred while sending your message.", "bot");
+    }
 }
+
 
 function appendMessage(content, sender) {
     const messagesDiv = document.getElementById("messages");

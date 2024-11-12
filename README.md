@@ -1,10 +1,11 @@
 # Therapet (In Progress)
 
-Submission to the MongoDB AI Hackathon: Code for a Cause.
+Project submission to the MongoDB AI Hackathon: Code for a Cause.
+Demo: https://therapet.onrender.com/
+
 This repository holds the code for the project Therapet, an application for a pet that helps.
 Generative AI for music.
-Mini-personalized games - trivia - mini pets - randomize a bunch of games but sort depending on user mood.
-Generative AI - art (prob has some function)
+Developing: Mini-personalized games - trivia - mini pets - randomize a bunch of games but sorted based on user mood - Generative AI - art for therapy.
 Ask daily questions.
 Joke generator.
 Resource provider.

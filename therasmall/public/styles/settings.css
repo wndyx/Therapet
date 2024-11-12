@@ -1,0 +1,11 @@
+#settings {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    margin: auto;
+  }
+  
+  #settings label {
+    margin-top: 10px;
+  }
+  

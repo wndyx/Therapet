@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat with Customizable Pet Avatar</title>
+  <link rel="stylesheet" href="/styles/chat.css">
+</head>
+<body>
+  <div id="chat-container">
+    <div id="header">
+      <div id="avatar" class="avatar">
+        <svg width="80" height="80" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <circle id="pet-body" cx="12" cy="12" r="10" fill="brown"></circle>
+          <circle id="left-eye" cx="9" cy="10" r="1.5" fill="black"></circle>
+          <circle id="right-eye" cx="15" cy="10" r="1.5" fill="black"></circle>
+          <polygon id="hat" points="8,4 16,4 12,0" fill="blue" style="display: none;"></polygon>
+        </svg>
+      </div>
+      <h2>Your Therapist Pet</h2>
+      <button id="settings-button">Settings</button>
+    </div>
+    <div id="chat-window">
+      <div id="messages"></div>
+    </div>
+    <div id="input-container">
+      <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off">
+      <button id="send-button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // User customization settings
+    const userSettings = {
+      bodyColor: "goldenrod",
+      accessory: "hat",
+      eyeColor: "blue",
+    };
+
+    // Apply customization to avatar
+    function applyAvatarCustomizations(settings) {
+      document.getElementById("pet-body").setAttribute("fill", settings.bodyColor);
+      document.getElementById("left-eye").setAttribute("fill", settings.eyeColor);
+      document.getElementById("right-eye").setAttribute("fill", settings.eyeColor);
+
+      const hat = document.getElementById("hat");
+      hat.style.display = settings.accessory === "hat" ? "block" : "none";
+      hat.setAttribute("fill", "blue");
+    }
+
+    // Function to navigate to settings page
+    function goToSettings() {
+      window.location.href = "/settings.html";
+    }
+
+    // Event listener for the settings button
+    document.getElementById("settings-button").addEventListener("click", goToSettings);
+
+    applyAvatarCustomizations(userSettings); // Apply settings on page load
+  </script>
+</body>
+</html>

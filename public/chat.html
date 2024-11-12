@@ -30,33 +30,50 @@
   </div>
 
   <script>
-    // User customization settings
-    const userSettings = {
-      bodyColor: "goldenrod",
-      accessory: "hat",
-      eyeColor: "blue",
-    };
-
     // Apply customization to avatar
     function applyAvatarCustomizations(settings) {
-      document.getElementById("pet-body").setAttribute("fill", settings.bodyColor);
-      document.getElementById("left-eye").setAttribute("fill", settings.eyeColor);
-      document.getElementById("right-eye").setAttribute("fill", settings.eyeColor);
+        document.getElementById("pet-body").setAttribute("fill", settings.bodyColor || "brown"); // Default to brown if not specified
+        document.getElementById("left-eye").setAttribute("fill", settings.eyeColor || "black");   // Default to black if not specified
+        document.getElementById("right-eye").setAttribute("fill", settings.eyeColor || "black");
 
-      const hat = document.getElementById("hat");
-      hat.style.display = settings.accessory === "hat" ? "block" : "none";
-      hat.setAttribute("fill", "blue");
+        const hat = document.getElementById("hat");
+        hat.style.display = settings.accessory === "hat" ? "block" : "none";
+        hat.setAttribute("fill", "blue");
+    }
+
+    // Fetch user settings from the server
+    async function fetchAvatarSettings() {
+        try {
+            const response = await fetch('/api/user/avatar');
+            if (!response.ok) {
+                throw new Error("Failed to load avatar settings");
+            }
+            const data = await response.json();
+
+            // Apply the fetched color and eyeColor to the avatar
+            applyAvatarCustomizations({
+                bodyColor: data.color || "brown",       // Default to brown if undefined
+                eyeColor: data.eyeColor || "black"      // Default to black if undefined
+            });
+        } catch (error) {
+            console.error(error);
+            alert("Error loading avatar settings.");
+        }
     }
 
     // Function to navigate to settings page
     function goToSettings() {
-      window.location.href = "/settings.html";
+        window.location.href = "/settings.html";
     }
 
     // Event listener for the settings button
     document.getElementById("settings-button").addEventListener("click", goToSettings);
 
-    applyAvatarCustomizations(userSettings); // Apply settings on page load
-  </script>
+    // Fetch and apply avatar settings on page load
+    fetchAvatarSettings();
+</script>
+
+<script src="chat.js"></script>
+
 </body>
 </html>

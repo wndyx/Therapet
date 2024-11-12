@@ -1,3 +1,16 @@
+document.addEventListener("DOMContentLoaded", function() {
+    // Event listener for the send button
+    document.getElementById("send-button").addEventListener("click", sendMessage);
+
+    // Optionally, you can also add an event listener for pressing "Enter" key
+    document.getElementById("user-input").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+});
+
 async function sendMessage() {
     const userId = localStorage.getItem("userId"); // Retrieve stored userId
     const message = document.getElementById("user-input").value.trim();
@@ -16,10 +29,23 @@ async function sendMessage() {
 }
 
 function appendMessage(content, sender) {
-    const chatWindow = document.getElementById("chat-window");
-    const messageDiv = document.createElement("div");
-    messageDiv.classList.add("message", sender);
-    messageDiv.textContent = content;
-    chatWindow.appendChild(messageDiv);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+    const messagesDiv = document.getElementById("messages");
+
+    // Create message wrapper
+    const messageWrapper = document.createElement("div");
+    messageWrapper.classList.add("message-wrapper", sender);
+
+    // Create message bubble
+    const messageBubble = document.createElement("div");
+    messageBubble.classList.add("message-bubble");
+    messageBubble.textContent = content;
+
+    // Append bubble to wrapper
+    messageWrapper.appendChild(messageBubble);
+
+    // Append wrapper to messages
+    messagesDiv.appendChild(messageWrapper);
+
+    // Scroll to the latest message
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }

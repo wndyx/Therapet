@@ -49,7 +49,6 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Find the user by username
         const user = await User.findOne({ username });
         if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
@@ -57,7 +56,13 @@ app.post('/api/login', async (req, res) => {
         const match = await bcrypt.compare(password, user.password);
         if (match) {
             req.session.userId = user._id; // Set session userId on successful login
-            res.status(200).json({ success: true, message: "Login successful", userId: user._id });
+            req.session.save(err => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    return res.status(500).json({ success: false, message: "Error saving session" });
+                }
+                res.status(200).json({ success: true, message: "Login successful" });
+            });
         } else {
             res.status(401).json({ success: false, message: "Incorrect password" });
         }
@@ -101,6 +106,7 @@ function getChatResponse(prompt) {
     });
 }
 
+/*
 // Chat Message Route with Dynamic Prompt
 app.post('/api/message', async (req, res) => {
     const { userId, message } = req.body;
@@ -126,10 +132,15 @@ app.post('/api/message', async (req, res) => {
         res.status(500).json({ error: 'Failed to process message' });
     }
 });
+*/
 
-// Save Avatar Route
-app.post('/api/user/avatar/save', async (req, res) => {
-    const { userId, avatarConfig } = req.body;
+// Route to retrieve avatar settings
+app.get('/api/user/avatar', async (req, res) => {
+    const userId = req.session.userId;
+
+    if (!userId) {
+        return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
 
     try {
         const user = await User.findById(userId);
@@ -137,30 +148,70 @@ app.post('/api/user/avatar/save', async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
+        // Only send color and eyeColor for the avatar
+        const { color, eyeColor } = user.avatarConfig;
+        res.status(200).json({ color, eyeColor });
+    } catch (error) {
+        console.error('Error retrieving avatar config:', error);
+        res.status(500).json({ message: "Error retrieving avatar config" });
+    }
+});
+
+app.post('/api/user/avatar/save', async (req, res) => {
+    const avatarConfig = req.body.avatarConfig; // Get avatarConfig from the request body
+
+    // Ensure the user is logged in
+    const userId = req.session.userId;
+    if (!userId) {
+        return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update the user's avatar configuration
         user.avatarConfig = avatarConfig;
         await user.save();
 
         res.status(200).json({ message: "Avatar saved successfully", avatarConfig });
     } catch (error) {
+        console.error('Error saving avatar:', error);
         res.status(500).json({ message: "Error saving avatar", error });
     }
 });
 
-// Get Avatar Route
-app.get('/api/user/:userId/avatar', async (req, res) => {
-    const { userId } = req.params;
 
+
+// Simplified Chat Message Route
+app.post('/api/message', async (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized. Please log in." });
+    }
+
+    const { message } = req.body;
     try {
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
+        const user = await User.findById(req.session.userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
 
-        res.status(200).json({ avatarConfig: user.avatarConfig });
+        // For testing, respond with "wassup"
+        const botResponse = "wassup";
+
+        // Update chat history
+        user.chat_history.push({ message, is_user: true });
+        user.chat_history.push({ message: botResponse, is_user: false });
+        await user.save();
+
+        res.status(200).json({ userMessage: message, botResponse });
     } catch (error) {
-        res.status(500).json({ message: "Error retrieving avatar", error });
+        console.error('Error handling message:', error);
+        res.status(500).json({ error: "Error processing message" });
     }
 });
+
+
 
 // Start the server
 const PORT = process.env.PORT || 3000;

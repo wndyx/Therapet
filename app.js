@@ -33,6 +33,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY, // Ensure your API key is set in the environment variables
 });
 
+// Define the system prompt for the therapist persona
+const systemPrompt = `You are Therapets, a compassionate and empathetic virtual therapist. Your role is to provide emotional support, active listening, and gentle guidance to users seeking help with their feelings and challenges. Maintain a professional and respectful tone, avoid giving medical advice, and encourage users to seek professional help when necessary.`;
+
 // Helper function to call OpenAI API
 async function getChatbotResponse(userId, userMessage) {
   try {
@@ -40,11 +43,16 @@ async function getChatbotResponse(userId, userMessage) {
     const user = await User.findById(userId);
     const chatHistory = user.chat_history || [];
 
-    // Prepare messages for OpenAI API
-    const messages = chatHistory.map((entry) => ({
-      role: entry.is_user ? 'user' : 'assistant',
-      content: entry.message,
-    }));
+    // Prepare messages for OpenAI API with system prompt
+    const messages = [
+      { role: 'system', content: systemPrompt }, // System prompt to define AI behavior
+      ...chatHistory.map((entry) => ({
+        role: entry.is_user ? 'user' : 'assistant',
+        content: entry.message,
+      })),
+      { role: 'user', content: userMessage }, // Latest user message
+    ];
+
 
     // Add the new user message
     messages.push({ role: 'user', content: userMessage });

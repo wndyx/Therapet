@@ -19,7 +19,7 @@ app.use(session({
 }));
 
 // Hugging Face API configuration
-const HUGGING_FACE_API_KEY = ''; // Replace with your Hugging Face API key
+const HUGGING_FACE_API_KEY = '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'; // Replace with your Hugging Face API key
 const MODEL_NAME = 'gpt2';
 
 
@@ -73,32 +73,79 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Find user by username
         const user = await User.findOne({ username });
-        if (!user) {
+        if (!user) 
             return res.status(404).json({ success: false, message: "User not found" });
-        }
 
-        // Compare provided password with stored hashed password
+        // Compare the provided password with the stored hashed password
         const match = await bcrypt.compare(password, user.password);
-        if (!match) {
-            return res.status(401).json({ success: false, message: "Incorrect password" });
+        if (match) {
+            req.session.userId = user._id; // Set session userId on successful login
+            req.session.save(err => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    return res.status(500).json({ success: false, message: "Error saving session" });
+                }
+                res.status(200).json({ success: true, message: "Login successful" });
+            });
+        } else {
+            res.status(401).json({ success: false, message: "Incorrect password" });
         }
-
-        // Set session userId on successful login
-        req.session.userId = user._id;
-        req.session.save((err) => {
-            if (err) {
-                console.error('Session save error:', err);
-                return res.status(500).json({ success: false, message: "Error saving session" });
-            }
-            res.status(200).json({ success: true, message: "Login successful" });
-        });
     } catch (error) {
         console.error('Error during login:', error);
         res.status(500).json({ success: false, message: "Error during login" });
     }
 });
+
+// Route to retrieve avatar settings
+app.get('/api/user/avatar', async (req, res) => {
+    const userId = req.session.userId;
+
+    if (!userId) {
+        return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Only send color and eyeColor for the avatar
+        const { color, eyeColor } = user.avatarConfig;
+        res.status(200).json({ color, eyeColor });
+    } catch (error) {
+        console.error('Error retrieving avatar config:', error);
+        res.status(500).json({ message: "Error retrieving avatar config" });
+    }
+});
+
+// Route to save avatar settings
+app.post('/api/user/avatar/save', async (req, res) => {
+    const userId = req.session.userId;
+    const { avatarConfig } = req.body; // Get avatarConfig from the request body
+
+    if (!userId) {
+        return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update the user's avatar configuration
+        user.avatarConfig = avatarConfig;
+        await user.save();
+
+        res.status(200).json({ message: "Avatar saved successfully", avatarConfig });
+    } catch (error) {
+        console.error('Error saving avatar:', error);
+        res.status(500).json({ message: "Error saving avatar", error });
+    }
+});
+
 
 // Chat Message Route with Hugging Face API integration
 app.post('/api/message', async (req, res) => {

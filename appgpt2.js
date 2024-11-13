@@ -19,7 +19,7 @@ app.use(session({
 }));
 
 // Hugging Face API configuration
-const HUGGING_FACE_API_KEY = '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'; // Replace with your Hugging Face API key
+const HUGGING_FACE_API_KEY = ''; // Replace with your Hugging Face API key
 const MODEL_NAME = 'gpt2';
 
 
